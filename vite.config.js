@@ -9,5 +9,8 @@ export default defineConfig({
     open: true,
     cors: true,
   },
-  base: '/my-portfolio/'
+  base: './',
+  build: {
+    outDir: 'dist',
+  },
 })

@@ -11,6 +11,7 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@mediapipe/face_mesh": "^0.4.1633559619",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -18,7 +19,8 @@
     "lucide-react": "^0.469.0",
     "openai": "^4.77.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.171.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

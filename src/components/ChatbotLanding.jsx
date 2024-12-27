@@ -8,25 +8,62 @@ import InteractiveAvatar from './InteractiveAvatar';
 const CHAT_API_URL = 'https://us-central1-my-portfolio-4ace3.cloudfunctions.net/chat';
 const MESSAGE_LIMIT = 50;
 
-const ChatMessage = ({ text, isUser, isLoading }) => (
-  <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-    <div 
-      className={`rounded-2xl px-4 py-2 max-w-[80%] ${
-        isUser ? 'bg-blue-500 text-white' : 'bg-gray-100'
-      }`}
-    >
-      {isLoading ? (
-        <div className="flex space-x-2 justify-center">
-          <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
-          <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-          <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-        </div>
-      ) : (
-        <p className="text-sm md:text-base">{text}</p>
-      )}
+const ChatMessage = ({ text, isUser, isLoading }) => {
+  const [isTyping, setIsTyping] = useState(!isUser);
+  
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div 
+        className={`rounded-2xl px-4 py-2 max-w-[80%] ${
+          isUser ? 'bg-blue-500 text-white' : 'bg-gray-100'
+        }`}
+      >
+        {isLoading ? (
+          <div className="flex space-x-2 justify-center">
+            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+          </div>
+        ) : (
+          <p className="text-sm md:text-base">
+            {isUser ? (
+              text
+            ) : (
+              isTyping ? (
+                <TypingAnimation 
+                  text={text} 
+                  onComplete={() => setIsTyping(false)} 
+                />
+              ) : (
+                text
+              )
+            )}
+          </p>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const TypingAnimation = ({ text, onComplete }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(currentIndex + 1);
+      }, 20); // Adjust typing speed here (milliseconds)
+
+      return () => clearTimeout(timeout);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }, [currentIndex, text, onComplete]);
+
+  return <span>{displayedText}</span>;
+};
 
 const QuickReply = ({ text, onClick, disabled }) => (
   <button
@@ -119,8 +156,9 @@ const ChatbotLanding = () => {
             isUser: false,
             timestamp: new Date().toISOString(),
           };
+
+          setIsLoading(false)
       
-          // Add the bot's response to the UI
           setMessages((prev) => [...prev, botResponse]);
       
           // Update Firestore with both user message and bot response
@@ -142,7 +180,7 @@ const ChatbotLanding = () => {
           }
         } catch (error) {
           console.error('Error:', error);
-      
+          setIsLoading(false)
           // Handle errors gracefully
           const errorMessage = {
             text: 'I apologize, but I\'m having trouble connecting. Please try again later.',
@@ -150,9 +188,7 @@ const ChatbotLanding = () => {
             timestamp: new Date().toISOString(),
           };
           setMessages((prev) => [...prev, errorMessage]);
-        } finally {
-          setIsLoading(false);
-        }
+        } 
       };
       
 
