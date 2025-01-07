@@ -127,11 +127,11 @@ const ChatbotLanding = () => {
       initAuth();
     }, []);
   
-    const scrollToBottom = () => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    // const scrollToBottom = () => {
+    //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // };
   
-    useEffect(scrollToBottom, [messages]);
+    // useEffect(scrollToBottom, [messages]);
   
     const handleSend = async (text) => {
         if (!text.trim() || isLoading || !userId) return;
