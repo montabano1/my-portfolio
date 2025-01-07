@@ -41,7 +41,7 @@ Your role is to:
 4. Guide visitors to relevant sections of the portfolio
 5. Help with scheduling calls or providing contact information when appropriate
 
-Keep responses concise, professional, and engaging. If you don't know something specific, direct visitors to contact Michael Montalbano directly: michaelmontalbano122@gmail.com.`;
+Keep responses concise (*at most 3 sentences*), professional, and engaging. If you don't know something specific, direct visitors to contact Michael Montalbano directly: michaelmontalbano122@gmail.com.`;
 
 export const chat = functions.https.onRequest(async (req, res) => {
   // Enable CORS

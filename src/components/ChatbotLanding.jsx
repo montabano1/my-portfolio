@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ChevronRight } from 'lucide-react';
+import { Send, ChevronRight, Construction } from 'lucide-react';
 import { db, auth } from '../main';
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
@@ -54,7 +54,7 @@ const TypingAnimation = ({ text, onComplete }) => {
       const timeout = setTimeout(() => {
         setDisplayedText(prev => prev + text[currentIndex]);
         setCurrentIndex(currentIndex + 1);
-      }, 20); // Adjust typing speed here (milliseconds)
+      }, 20);
 
       return () => clearTimeout(timeout);
     } else if (onComplete) {
@@ -78,6 +78,23 @@ const QuickReply = ({ text, onClick, disabled }) => (
   </button>
 );
 
+const ConstructionBanner = () => (
+  <div className="bg-gradient-to-r from-yellow-100 to-yellow-50 border-b border-yellow-200 p-6 mb-8 rounded-lg shadow-sm">
+    <div className="max-w-4xl mx-auto">
+      <div className="flex items-center justify-center gap-3 mb-3">
+        <Construction className="text-yellow-600" size={24} />
+        <h1 className="text-2xl font-semibold text-yellow-800">Website Under Construction</h1>
+      </div>
+      <p className="text-center text-yellow-700">
+        Expected completion: February 5th, 2025
+      </p>
+      <p className="text-center text-yellow-600 mt-2">
+        In the meantime, feel free to chat with my AI assistant below - they have all the information you need about my experience, projects, and skills!
+      </p>
+    </div>
+  </div>
+);
+
 const ChatbotLanding = () => {
     const [messages, setMessages] = useState([{
       text: "👋 Hello! I'm Michael's AI assistant. I can tell you all about his experience at Meta, his work in full-stack development, and his projects. What would you like to know?",
@@ -93,12 +110,11 @@ const ChatbotLanding = () => {
 
     const quickReplies = [
         "Tell me about your experience",
-        "Show me your projects",
+        "Show me your favorite project",
         "What are your skills?",
         "How can I contact you?"
-      ];
+    ];
   
-    // Initialize anonymous auth only
     useEffect(() => {
       const initAuth = async () => {
         try {
@@ -120,7 +136,6 @@ const ChatbotLanding = () => {
     const handleSend = async (text) => {
         if (!text.trim() || isLoading || !userId) return;
       
-        // Add the user's message to the UI
         const userMessage = {
           text,
           isUser: true,
@@ -131,7 +146,6 @@ const ChatbotLanding = () => {
         setIsLoading(true);
       
         try {
-          // Fetch the bot response from OpenAI
           const messageHistory = messages.concat(userMessage).map((msg) => ({
             role: msg.isUser ? 'user' : 'assistant',
             content: msg.text,
@@ -161,7 +175,6 @@ const ChatbotLanding = () => {
       
           setMessages((prev) => [...prev, botResponse]);
       
-          // Update Firestore with both user message and bot response
           if (conversationId) {
             await updateDoc(doc(db, 'conversations', conversationId), {
               messages: [...messages, userMessage, botResponse],
@@ -181,7 +194,6 @@ const ChatbotLanding = () => {
         } catch (error) {
           console.error('Error:', error);
           setIsLoading(false)
-          // Handle errors gracefully
           const errorMessage = {
             text: 'I apologize, but I\'m having trouble connecting. Please try again later.',
             isUser: false,
@@ -190,11 +202,12 @@ const ChatbotLanding = () => {
           setMessages((prev) => [...prev, errorMessage]);
         } 
       };
-      
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
       <div className="max-w-4xl mx-auto">
+        <ConstructionBanner />
+        
         <div className="flex justify-center mb-8">
           <InteractiveAvatar />
         </div>

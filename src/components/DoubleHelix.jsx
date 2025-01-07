@@ -20,10 +20,13 @@ const DoubleHelix = () => {
   // A ref to our auto-rotation interval
   const autoRotateRef = useRef(null);
 
+  const [isColoringStrands, setIsColoringStrands] = useState(false);
+
   // Helix constants
   const HELIX_HEIGHT = 800;
+  const HELIX_WIDTH = 8;
   const NUCLEOTIDE_WIDTH = 40;
-  const NUCLEOTIDE_HEIGHT = 20;
+  const NUCLEOTIDE_HEIGHT = 10;
   const HELIX_RADIUS = 60;
   const PAIRS_COUNT = 16;
   const COLORS_PER_TURN = 4;
@@ -93,43 +96,48 @@ const DoubleHelix = () => {
    * 2) Animate rotation clockwise to a color’s angle (no setInterval).
    *    We do a requestAnimationFrame linear interpolation.
    */
-  const animateRotationClockwise = (toAngle, duration = 1200) => {
+  const animateRotationClockwise = (toAngle, rotationSpeed = 360) => {
+    // rotationSpeed is in degrees per second
     return new Promise((resolve) => {
-      if (autoRotateRef.current) {
-        clearInterval(autoRotateRef.current);
-        autoRotateRef.current = null;
-      }
-
-      const fromAngle = rotation;
-
-      // figure out the clockwise difference
-      let diff = toAngle - fromAngle;
-      while (diff < 0) {
-        diff += 360;
-      }
-      const finalAngle = fromAngle + diff;
-
-      let startTime = 0;
-      function loop(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const elapsed = timestamp - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // linear interpolation
-        const current = fromAngle + diff * progress;
-        setRotation(current);
-
-        if (progress < 1) {
-          requestAnimationFrame(loop);
-        } else {
-          // done => snap exactly
-          setRotation(finalAngle % 360);
-          resolve();
+        if (autoRotateRef.current) {
+            clearInterval(autoRotateRef.current);
+            autoRotateRef.current = null;
         }
-      }
-      requestAnimationFrame(loop);
+
+        const fromAngle = rotation;
+
+        // Calculate the clockwise difference
+        let diff = toAngle - fromAngle;
+        while (diff < 0) {
+            diff += 360;
+        }
+        const finalAngle = fromAngle + diff;
+
+        // Calculate duration based on rotation speed
+        const duration = (diff / rotationSpeed) * 1000; // Convert to milliseconds
+
+        let startTime = 0;
+        function loop(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Linear interpolation for current rotation
+            const current = fromAngle + diff * progress;
+            setRotation(current);
+
+            if (progress < 1) {
+                requestAnimationFrame(loop);
+            } else {
+                // Snap exactly to the final angle
+                setRotation(finalAngle % 360);
+                resolve();
+            }
+        }
+        requestAnimationFrame(loop);
     });
-  };
+};
+
 
   /**
    * 3) Once rotation is done, we set isConnecting=true,
@@ -157,7 +165,7 @@ const DoubleHelix = () => {
       setTimeout(() => {
         setExpandedIndices(pair.index);
       }, delay);
-      delay += 400;
+      delay += 200;
     });
     setTimeout(() => {
         setExpandedIndices(100);
@@ -237,25 +245,33 @@ const DoubleHelix = () => {
    */
   const handleColorClick = async (group) => {
     if (activeColor === group) {
-      // reset
-      setActiveColor(null);
-      setIsConnecting(false);
-      setExpandedIndices(null);
-      setIsAutoRotating(true);
+        // reset
+        setActiveColor(null);
+        setIsConnecting(false);
+        setExpandedIndices(null);
+        setIsAutoRotating(true);
+        setIsColoringStrands(false);
     } else {
-      setActiveColor(group);
-      setIsConnecting(false);
-      setExpandedIndices(null);
-      setIsAutoRotating(false);
+        setActiveColor(group);
+        setIsConnecting(false);
+        setExpandedIndices(null);
+        setIsAutoRotating(false);
+        setIsColoringStrands(false);
 
-      // animate to the color’s angle, clockwise
-      const desiredAngle = colorGroups[group].angle;
-      await animateRotationClockwise(desiredAngle, 1000);
+        // animate to the color’s angle, clockwise
+        const desiredAngle = colorGroups[group].angle;
+        await animateRotationClockwise(desiredAngle);
 
-      // once done
-      setIsConnecting(true);
+        // once done
+        setIsConnecting(true);
+
+        // Trigger strand coloring after connecting animation
+        setTimeout(() => {
+            setIsColoringStrands(true);
+        }, 800); // Adjust delay as needed
     }
-  };
+};
+
 
   return (
     <div className="w-1/3 h-screen flex items-center justify-center bg-black">
@@ -279,35 +295,52 @@ const DoubleHelix = () => {
       <svg
         width="100%"
         height="100%"
-        viewBox={`${-HELIX_RADIUS - 50} 0 ${2 * HELIX_RADIUS + 100} ${HELIX_HEIGHT}`}
+        viewBox={`${-HELIX_RADIUS - 50} -20 ${2 * HELIX_RADIUS + 100} ${HELIX_HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
       >
         {/* left backbone */}
         <motion.path
-          d={points
-            .map((p, i) =>
-              i === 0
+    d={points
+        .map((p, i) =>
+            i === 0
                 ? `M ${p.strand1.x} ${p.strand1.y}`
                 : `L ${p.strand1.x} ${p.strand1.y}`
-            )
-            .join(' ')}
-          fill="none"
-          stroke="rgba(147, 197, 253, 0.3)"
-          strokeWidth={5}
-        />
-        {/* right backbone */}
-        <motion.path
-          d={points
-            .map((p, i) =>
-              i === 0
+        )
+        .join(' ')}
+    fill="none"
+    stroke={isColoringStrands ? colorGroups[activeColor]?.base : "rgba(147, 197, 253, 0.3)"}
+    strokeWidth={HELIX_WIDTH}
+    initial={{ stroke: "rgba(147, 197, 253, 0.3)" }}
+    animate={{
+        stroke: isColoringStrands ? colorGroups[activeColor]?.base : "rgba(147, 197, 253, 0.3)",
+    }}
+    transition={{
+        duration: points.length * 0.1, // Adjust speed of animation
+        ease: "easeInOut",
+    }}
+/>
+
+<motion.path
+    d={points
+        .map((p, i) =>
+            i === 0
                 ? `M ${p.strand2.x} ${p.strand2.y}`
                 : `L ${p.strand2.x} ${p.strand2.y}`
-            )
-            .join(' ')}
-          fill="none"
-          stroke="rgba(147, 197, 253, 0.3)"
-          strokeWidth={5}
-        />
+        )
+        .join(' ')}
+    fill="none"
+    stroke={isColoringStrands ? colorGroups[activeColor]?.base : "rgba(147, 197, 253, 0.3)"}
+    strokeWidth={HELIX_WIDTH}
+    initial={{ stroke: "rgba(147, 197, 253, 0.3)" }}
+    animate={{
+        stroke: isColoringStrands ? colorGroups[activeColor]?.base : "rgba(147, 197, 253, 0.3)",
+    }}
+    transition={{
+        duration: points.length * 0.1, // Adjust speed of animation
+        ease: "easeInOut",
+    }}
+/>
+
 
         {points.map((point) => (
           <g key={point.index}>
